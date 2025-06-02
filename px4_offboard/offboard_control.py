@@ -39,7 +39,8 @@ import rclpy
 import numpy as np
 from rclpy.node import Node
 from rclpy.clock import Clock
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
+# from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
 
 from px4_msgs.msg import OffboardControlMode
 from px4_msgs.msg import TrajectorySetpoint
@@ -50,16 +51,23 @@ class OffboardControl(Node):
 
     def __init__(self):
         super().__init__('minimal_publisher')
+        # qos_profile = QoSProfile(
+        #     reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+        #     durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+        #     history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+        #     depth=1
+        # )
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
-            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
-            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
-            depth=1
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
         )
 
         self.status_sub = self.create_subscription(
             VehicleStatus,
-            '/fmu/out/vehicle_status_v1',
+            # '/fmu/out/vehicle_status_v1',
+            '/fmu/out/vehicle_status',
             self.vehicle_status_callback,
             qos_profile)
         self.publisher_offboard_mode = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', qos_profile)
@@ -79,12 +87,20 @@ class OffboardControl(Node):
         self.omega = self.get_parameter('omega').value
         self.altitude = self.get_parameter('altitude').value
  
+    # def vehicle_status_callback(self, msg):
+    #     # TODO: handle NED->ENU transformation
+    #     print("NAV_STATUS: ", msg.nav_state)
+    #     print("  - offboard status: ", VehicleStatus.NAVIGATION_STATE_OFFBOARD)
+    #     self.nav_state = msg.nav_state
+    #     self.arming_state = msg.arming_state
     def vehicle_status_callback(self, msg):
-        # TODO: handle NED->ENU transformation
-        print("NAV_STATUS: ", msg.nav_state)
-        print("  - offboard status: ", VehicleStatus.NAVIGATION_STATE_OFFBOARD)
-        self.nav_state = msg.nav_state
-        self.arming_state = msg.arming_state
+        try:
+            print("NAV_STATUS: ", msg.nav_state)
+            print("  - offboard status: ", VehicleStatus.NAVIGATION_STATE_OFFBOARD)
+            self.nav_state = msg.nav_state
+            self.arming_state = msg.arming_state
+        except Exception as e:
+            print("vehicle_status_callback error:", e)
 
     def cmdloop_callback(self):
         # Publish offboard control modes

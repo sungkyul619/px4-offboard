@@ -49,8 +49,6 @@ from px4_msgs.msg import TrajectorySetpoint
 from geometry_msgs.msg import PoseStamped, Point
 from nav_msgs.msg import Path
 from visualization_msgs.msg import Marker
-from tf2_ros import TransformBroadcaster
-from geometry_msgs.msg import TransformStamped
 
 
 def vector2PoseMsg(frame_id, position, attitude):
@@ -125,12 +123,9 @@ class PX4Visualizer(Node):
         # time after which existing path is cleared upon receiving new
         # local position ROS2 message
         self.declare_parameter("path_clearing_timeout", -1.0)
-        
-        self.tf_broadcaster = TransformBroadcaster(self)
-        self.namespace = self.get_namespace().strip("/")
+
         timer_period = 0.05  # seconds
         self.timer = self.create_timer(timer_period, self.cmdloop_callback)
-
 
     def vehicle_attitude_callback(self, msg):
         # TODO: handle NED->ENU transformation
@@ -168,7 +163,7 @@ class PX4Visualizer(Node):
     def create_arrow_marker(self, id, tail, vector):
         msg = Marker()
         msg.action = Marker.ADD
-        msg.header.frame_id = f"{self.namespace}/map"
+        msg.header.frame_id = "map"
         # msg.header.stamp = Clock().now().nanoseconds / 1000
         msg.ns = "arrow"
         msg.id = id
@@ -204,7 +199,7 @@ class PX4Visualizer(Node):
 
     def cmdloop_callback(self):
         vehicle_pose_msg = vector2PoseMsg(
-            f"{self.namespace}/map", self.vehicle_local_position, self.vehicle_attitude
+            "map", self.vehicle_local_position, self.vehicle_attitude
         )
         self.vehicle_pose_pub.publish(vehicle_pose_msg)
 
@@ -214,7 +209,7 @@ class PX4Visualizer(Node):
         self.vehicle_path_pub.publish(self.vehicle_path_msg)
 
         # Publish time history of the vehicle path
-        setpoint_pose_msg = vector2PoseMsg(f"{self.namespace}/map", self.setpoint_position, self.vehicle_attitude)
+        setpoint_pose_msg = vector2PoseMsg("map", self.setpoint_position, self.vehicle_attitude)
         self.setpoint_path_msg.header = setpoint_pose_msg.header
         self.append_setpoint_path(setpoint_pose_msg)
         self.setpoint_path_pub.publish(self.setpoint_path_msg)
@@ -222,24 +217,6 @@ class PX4Visualizer(Node):
         # Publish arrow markers for velocity
         velocity_msg = self.create_arrow_marker(1, self.vehicle_local_position, self.vehicle_local_velocity)
         self.vehicle_vel_pub.publish(velocity_msg)
-        
-        # PoseStamped -> TransformStamped
-        transform = TransformStamped()
-        transform.header.stamp = self.get_clock().now().to_msg()
-        transform.header.frame_id = f"{self.namespace}/map"  # 부모 프레임
-        transform.child_frame_id = f"{self.namespace}/base_link"  # 자식 프레임
-        transform.transform.translation.x = self.vehicle_local_position[0]
-        transform.transform.translation.y = self.vehicle_local_position[1]
-        transform.transform.translation.z = self.vehicle_local_position[2]
-        transform.transform.rotation.w = self.vehicle_attitude[0]
-        transform.transform.rotation.x = self.vehicle_attitude[1]
-        transform.transform.rotation.y = self.vehicle_attitude[2]
-        transform.transform.rotation.z = self.vehicle_attitude[3]
-
-        self.tf_broadcaster.sendTransform(transform)
-
-        
-        
 
 
 def main(args=None):

@@ -48,14 +48,14 @@ def generate_launch_description():
             package='px4_offboard',
             namespace='px4_1',
             executable='swarm_visualizer',
-            # parameters=[{'use_sim_time': True}] # <-- 이 줄 추가
+            parameters=[{'use_sim_time': True}] # <-- 이 줄 추가
             # name='px4_1'
         ),
         Node(
             package='px4_offboard',
             namespace='px4_2',
             executable='swarm_visualizer',
-            # parameters=[{'use_sim_time': True}] # <-- 이 줄 추가
+            parameters=[{'use_sim_time': True}] # <-- 이 줄 추가
             # name='px4_2'
         ),
         Node(
@@ -63,7 +63,7 @@ def generate_launch_description():
             namespace='',
             executable='rviz2',
             name='rviz2',
-            # parameters=[{'use_sim_time': True}], # <-- 이 줄 추가
+            parameters=[{'use_sim_time': True}], # <-- 이 줄 추가
             arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
             
         )

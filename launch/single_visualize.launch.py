@@ -52,13 +52,6 @@ def generate_launch_description():
             # name='px4_1'
         ),
         Node(
-            package='px4_offboard',
-            namespace='px4_2',
-            executable='swarm_visualizer',
-            parameters=[{'use_sim_time': True}] # <-- 이 줄 추가
-            # name='px4_2'
-        ),
-        Node(
             package='rviz2',
             namespace='',
             executable='rviz2',
